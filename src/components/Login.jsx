@@ -22,8 +22,8 @@ export default ({setUser, setErrorMessage}) => {
             console.log(token);
             mapUser(token, setUser);
         } catch (e) {
-            console.log((await e.fullError).message);
             removeToken();
+            console.log((await e.fullError).message);
         }
     };
 
