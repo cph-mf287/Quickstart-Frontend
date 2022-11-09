@@ -1,78 +1,41 @@
-import {URL} from './settings';
+import {BASE_URL} from "../settings.js";
+import {getToken, isLoggedIn} from "./loginFacade.js";
 
-function handleHttpErrors(res) {
-    if (!res.ok) {
-        return Promise.reject({status: res.status, fullError: res.json()})
+export const makeOptions = (method, addToken, body) => {
+    method = method ? method : 'GET';
+    const opts = {
+        method: method,
+        headers: {
+            ...(['PUT', 'POST'].includes(method) && {
+                "Content-type": "application/json"
+            }),
+            "Accept": "application/json"
+        },
+    };
+    if (addToken && isLoggedIn()) {
+        opts.headers["x-access-token"] = getToken();
     }
-    return res.json();
-}
-
-function apiFacade() {
-
-    const setToken = (token) => {
-        localStorage.setItem('jwtToken', token)
+    if (body) {
+        opts.body = JSON.stringify(body);
     }
+    return opts;
+};
 
-    const getToken = () => {
-        return localStorage.getItem('jwtToken')
+export const handleHttpErrors = async (response) => {
+    if (!response.ok) {
+        //console.log(await response.json());
+        return Promise.reject({status: response.status, fullError: response.json()});
     }
+    return response;
+};
 
-    const checkToken = () => {
-        return fetch(URL + "api/expired")
-    }
+export const fetchData = () => {
+    const options = makeOptions("GET", true);
+    return fetch(BASE_URL + "/api/info/user", options).then(handleHttpErrors);
+};
 
-    const loggedIn = () => {
-        return getToken() != null;
-    }
-
-    const logout = () => {
-        localStorage.removeItem("jwtToken");
-    }
-
-    const login = (user, password) => {
-        const options = makeOptions("POST", true, {username: user, password: password});
-        return fetch(URL + "/api/login", options)
-            .then(handleHttpErrors)
-            .then(res => {
-                setToken(res.token)
-            })
-    }
-
-    const fetchData = () => {
-        const options = makeOptions("GET", true);
-        return fetch(URL + "/api/info/user", options).then(handleHttpErrors);
-    }
-
-    function makeOptions(method, addToken, body) {
-        method = method ? method : 'GET';
-        const opts = {
-            method: method,
-            headers: {
-                ...(['PUT', 'POST'].includes(method) && {
-                    "Content-type": "application/json"
-                }),
-                "Accept": "application/json"
-            }
-        }
-        if (addToken && loggedIn()) {
-            opts.headers["x-access-token"] = getToken();
-        }
-        if (body) {
-            opts.body = JSON.stringify(body);
-        }
-        return opts;
-    }
-
-    return {
-        makeOptions,
-        setToken,
-        getToken,
-        loggedIn,
-        login,
-        logout,
-        fetchData
-    }
-}
-
-const facade = apiFacade();
-export default facade;
+export default {
+    makeOptions,
+    handleHttpErrors,
+    fetchData,
+};

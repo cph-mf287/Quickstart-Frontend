@@ -1,33 +1,39 @@
-import React, {useRef, useState} from 'react';
-import facade from "../utils/apiFacade.js";
+import {useState} from "react";
+import {logIn, removeToken, setToken} from "../utils/loginFacade.js";
+import {mapUser} from "./App.jsx";
 
-function Login({setLoggedIn, setErrorMsg}) {
-    const init = {username: "", password: ""};
-    const [loginCredentials, setLoginCredentials] = useState(init);
+export const initialState = {
+    username: "",
+    password: "",
+};
 
-    const performLogin = (evt) => {
-        evt.preventDefault();
-        login(loginCredentials.username, loginCredentials.password);
-    }
-
-    const login = (user, pass) => {
-        facade.login(user, pass)
-            .then(res => setLoggedIn(true))
-    }
+export default ({setUser, setErrorMessage}) => {
+    const [loginCredentials, setLoginCredentials] = useState(initialState);
 
     const onChange = (evt) => {
-        setLoginCredentials({...loginCredentials, [evt.target.id]: evt.target.value})
-    }
+        setLoginCredentials({...loginCredentials, [evt.target.id]: evt.target.value});
+    };
+
+    const performLogIn = async (evt) => {
+        evt.preventDefault();
+        try {
+            const token = await (await logIn(loginCredentials.username, loginCredentials.password)).json();
+            setToken(token);
+            console.log(token);
+            mapUser(token, setUser);
+        } catch (e) {
+            console.log((await e.fullError).message);
+            removeToken();
+        }
+    };
 
     return (
         <div className="login-container">
             <form>
                 <input onChange={onChange} type="text" placeholder="Username" id="username"/>{" "}
                 <input onChange={onChange} type="password" placeholder="Password" id="password"/>
-                <button onClick={performLogin} type="submit">Login</button>
+                <button onClick={performLogIn} type="submit">Log In</button>
             </form>
         </div>
-    )
-}
-
-export default Login;
+    );
+};

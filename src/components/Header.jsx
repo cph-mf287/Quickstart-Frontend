@@ -1,25 +1,20 @@
-import React, {useState} from 'react';
 import {NavLink} from "react-router-dom";
+import {getToken} from "../utils/loginFacade.js";
 import Login from "./Login.jsx";
 import LoggedIn from "./LoggedIn.jsx";
 import "../styles/header.css";
 
-
-function Header({setErrorMsg, loggedIn, setLoggedIn}) {
-
-
+export default ({user, setUser, setErrorMessage}) => {
     return (
         <nav className="topnav">
-            <NavLink className="active" to="/"><i className="fa fa-fw fa-home"></i> Home</NavLink>
-            <NavLink to="/search"><i className="fa fa-fw fa-search"></i> Search</NavLink>
-            <NavLink to="/jokes"><i className="fa fa-fw fa-envelope"></i> Jokes</NavLink>
-            {/*admin ? (<NavLink to="/Tournament"><i className="fa fa-fw fa-encelope"></i> Tournament</NavLink>) : null*/}
-            {!loggedIn ?
-                (<Login setLoggedIn={setLoggedIn} setErrorMsg={setErrorMsg}  />) :
-                (<LoggedIn setLoggedIn={setLoggedIn}/>)}
+            <NavLink end to="/"><i className="fa fa-fw fa-home"/> Home</NavLink>
+            <NavLink to="/search"><i className="fa fa-fw fa-search"/> Search</NavLink>
+            <NavLink to="/jokes"><i className="fa fa-fw fa-envelope"/> Jokes</NavLink>
+            {user.roles.includes("admin") ? <NavLink to="/Tournament"><i className="fa fa-fw fa-envelope"/> Secret Admin Menu</NavLink> : null}
+            {!getToken() ?
+                <Login setUser={setUser} setErrorMessage={setErrorMessage}/> :
+                <LoggedIn user={user} setUser={setUser}/>
+            }
         </nav>
-
     );
-}
-
-export default Header;
+};
