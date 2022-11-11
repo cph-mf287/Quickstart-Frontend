@@ -1,94 +1,110 @@
-import {useEffect, useState} from "react";
-import {getToken, verifyToken, decodeToken, removeToken, setToken} from "../utils/loginFacade.js"
+import {useEffect, useRef, useState} from "react";
+import {getToken, verifyToken, decodeToken} from "../utils/loginFacade.js";
+import {useLocation} from "react-router-dom";
 import {Route, Routes} from "react-router-dom";
+import {CONTEXT} from "../settings.js";
 import Header from "./Header.jsx";
-import LandingPage from "../pages/Landing.jsx";
-import Home from "../pages/Home.jsx";
+import Landing from "../pages/Landing.jsx";
 import Search from "../pages/Search.jsx";
-import Contact from "../pages/Contact.jsx";
 import Jokes from "../pages/Jokes.jsx";
+import Contact from "../pages/Contact.jsx";
+import Home from "../pages/Home.jsx";
 
 export const initialState = {
-    username: null,
-    roles: [],
-    isLoggedIn: false,
-    loggingOut: null,
+    user: {
+        name: undefined,
+        roles: [],
+        loggedIn: false,
+    },
+    expires: undefined,
 };
 
-export async function checkToken(token, setUser) {
-    try {
-        token = await (await verifyToken(token)).json();
-        console.log(token);
-        setToken(token);
-        mapUser(token, setUser);
-        return token;
-    } catch (e) {
-        removeToken();
-        console.log((await e.fullError).message);
-        alert("Your session has expired. Please log in again.");
-        setUser(initialState);
-        return false;
+export function mapToken(token, setSession) {
+    const payload = decodeToken(token); //console.log(payload);
+    const session = {
+        user: {
+            name: payload["sub"],
+            roles: payload["roles"],
+            loggedIn: true,
+        },
+        expires: new Date(payload["exp"] * 1000),
+    };
+    setSession(session);
+    console.log(session);
+}
+
+export function scheduleCheck(token, setSession) {
+    console.log("Scheduling check");
+    const timeout = setTimeout(
+        (token, setSession) => (checkToken)(token, setSession),
+        new Date(decodeToken(token)["exp"] * 1000).getTime() - new Date().getTime() + 1,
+        token, setSession,
+    );
+    return () => {
+        console.log("Unscheduling check");
+        clearTimeout(timeout);
+    };
+}
+
+export async function checkToken(token, setSession) {
+    console.log("Checking token");
+    if ((token = await verifyToken())) {
+        mapToken(token, setSession);
+        return scheduleCheck(token, setSession);
+    } else {
+        console.log("Outdated token");
+        setSession(initialState);
     }
 }
 
-export function mapUser(token, setUser) {
-    const info = decodeToken(token);
-    //console.log(info);
-    setUser({
-        username: info["sub"],
-        roles: info["roles"],
-        isLoggedIn: true,
-        loggingOut: new Date(info["exp"] * 1000),
-    });
-    setTimeout(
-        (token) => checkToken(token, setUser),
-        new Date(decodeToken(token)["exp"] * 1000).getTime() - new Date().getTime() + 1000,
-        token,
-    );
-}
-
 export default () => {
-    const [user, setUser] = useState(initialState);
+    const [session, setSession] = useState(initialState);
+    const [justLoggedIn, setJustLoggedIn] = useState(false);
+    const timeout = useRef(undefined);
+    const location = useLocation();
 
     useEffect(() => {
-        let token;
-        if ((token = getToken()))
-            ((token) => checkToken(token))(token);
-    }, []);
-
-    const obj = {
-        name: "TestName",
-        street: "TestStreet",
-        town: "TestTown",
-        country: "TestCountry",
-    };
+        let token; if ((token = getToken())) {
+            if (timeout.current) {
+                if (justLoggedIn) {
+                    setJustLoggedIn(false);
+                    return;
+                }
+                timeout.current();
+            }
+            if (justLoggedIn) {
+                timeout.current = scheduleCheck(token, setSession);
+            } else {
+                (async () => timeout.current = await checkToken(token, setSession))();
+            }
+        }
+    }, [location, justLoggedIn]);
 
     return (
         <>
-            <Header user={user} setUser={setUser} />
+            <Header session={session} setSession={setSession} setJustLoggedIn={setJustLoggedIn} />
             <Routes>
+                {/* Pages you can always see */}
+                <Route path={CONTEXT + "search"} element={<Search />} />
+                <Route path={CONTEXT + "jokes"} element={<Jokes />} />
+                <Route path="*" element={<h1>Page Not Found !!!!</h1>} />
                 {!getToken() ?
                     <>
-                        {/* Pages where you have to be logged OUT */}
-                        <Route path="/" element={<LandingPage user={user}/>}/>
+                        {/* Pages you can only see when you're logged OUT */}
+                        <Route path={CONTEXT} element={<Landing session={session} />} />
                     </>
                     :
                     <>
-                        {/* Pages where you have to be logged IN */}
-                        <Route path="/" element={<Home user={user}/>}/>
+                        {/* Pages you can only see when you're logged IN */}
+                        <Route path={CONTEXT} element={<Home session={session} />} />
 
-                        {user.roles.includes("admin") &&
+                        {session.user.roles.includes("admin") &&
                             <>
-                                {/* Pages where you have to be ADMIN */}
+                                {/* Pages you can only see when you're ADMIN */}
                             </>
                         }
                     </>
                 }
-                {/* Pages you can always see */}
-                <Route path="/search" element={<Search/>}/>
-                <Route path="/contact" element={<Contact address={obj}/>}/>
-                <Route path="/jokes" element={<Jokes/>}/>
-                <Route path="*" element={<h1>Page Not Found !!!!</h1>}/>
             </Routes>
         </>
     );
