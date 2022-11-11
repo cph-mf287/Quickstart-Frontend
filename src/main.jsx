@@ -1,15 +1,16 @@
-import React from 'react'
+import "../node_modules/font-awesome/css/font-awesome.min.css";
+import "../node_modules/bootstrap/dist/css/bootstrap.min.css";
+import "./styles/main.css";
+
+import React from "react";
+import ReactDOM from "react-dom/client";
 import {BrowserRouter} from "react-router-dom";
-import ReactDOM from 'react-dom/client'
-import '../node_modules/bootstrap/dist/css/bootstrap.min.css'
-import './styles/main.css'
-import App from "./App.jsx";
+import App from "./components/App.jsx";
 
-
-ReactDOM.createRoot(document.getElementById('root')).render(
-    <React.StrictMode>
+ReactDOM.createRoot(document.getElementById("app")).render(
+    //<React.StrictMode>
         <BrowserRouter>
-            <App/>
+            <App />
         </BrowserRouter>
-    </React.StrictMode>
-)
+    //</React.StrictMode>
+);
