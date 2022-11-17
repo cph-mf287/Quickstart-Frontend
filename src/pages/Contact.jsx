@@ -2,13 +2,15 @@ import React from 'react';
 
 function Contact({address}) {
     return (
-        <div>
-            <h1>Contacts</h1>
-            <h3>{address.name}</h3>
-            <p>{address.street}</p>
-            <p>{address.town}</p>
-            <p>{address.country}</p>
-        </div>
+        <main className="container">
+            <section className="row justify-content-center">
+                <h3>Contacts</h3>
+                <p>{address.name}</p>
+                <p>{address.street}</p>
+                <p>{address.town}</p>
+                <p>{address.country}</p>
+            </section>
+        </main>
     );
 }
 
