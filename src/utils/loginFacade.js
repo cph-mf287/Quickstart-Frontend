@@ -13,7 +13,7 @@ export const verifyToken = async () => {
     const options = makeOptions("GET", true);
     const response = await fetch(VERIFY_URL, options);
     try {
-        const token = await (await handleHttpErrors(response)).json();
+        const token = (await (await handleHttpErrors(response)).json())["token"];
         setToken(token);
         console.log(token);
         return token;
@@ -30,7 +30,7 @@ export const decodeToken = (token) => {
     const encodedPayload = token.split(".")[1];
     const decodedPayload = window.atob(encodedPayload);
     const payload = JSON.parse(decodedPayload);
-    payload["roles"] = payload["roles"].includes(",") ? payload["roles"].split(",").toArray() : [payload["roles"]];
+    payload["roles"] = payload["roles"].includes(",") ? payload["roles"].split(",") : [payload["roles"]];
     return payload;
 };
 
@@ -46,7 +46,7 @@ export const logIn = async (user, password) => {
     const options = makeOptions("POST", false, {username: user, password: password});
     const response = await fetch(LOGIN_URL, options);
     try {
-        const token = await (await handleHttpErrors(response)).json();
+        const token = (await (await handleHttpErrors(response)).json())["token"];
         setToken(token);
         console.log(token);
         return token;
